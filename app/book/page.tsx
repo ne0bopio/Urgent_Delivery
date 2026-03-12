@@ -3,24 +3,9 @@
 // ============================================================
 // app/book/page.tsx — Booking & Quote Page (orchestrator)
 //
-// This file owns:
-//   • All shared state  (quoteReady, quoteError, modalOpen)
-//   • Both hooks        (useBookingForm, useQuote)
-//   • displayQuote      (live estimate before final calculation)
-//   • Page shell        (APIProvider, Navbar, header, layout,
-//                        ContactModal, ContactFloat)
-//
-// UI is delegated entirely to two focused components:
-//   <BookStepForm />   → components/book/BookStepForm.tsx
-//   <BookQuotePanel /> → components/book/BookQuotePanel.tsx
-//
-// Step order:
-//   1. Date + time  (TimeSlotPicker)
-//   2. Item count
-//   3. Heavy items?
-//   4. Pickup address
-//   5. Dropoff address
-//   → Calculate → ContactModal → Stripe Checkout
+// FIX: durationMins was not in the ContactModal payload.
+// Now pulled from useQuote() and forwarded so /api/bookings
+// receives it and can pass the 400 validation check.
 // ============================================================
 
 import { useState }    from "react";
@@ -46,7 +31,8 @@ export default function BookPage() {
   const [modalOpen,  setModalOpen]  = useState(false);
 
   // ── Hooks ─────────────────────────────────────────────────
-  const { quote, isPremium, calculating, calculate } = useQuote();
+  // FIX: destructure durationMins from useQuote
+  const { quote, isPremium, durationMins, calculating, calculate } = useQuote();
 
   const { step, form, canAdvance, dateTimeError, setField, goNext, goBack, resetForm } =
     useBookingForm(async (currentForm) => {
@@ -62,7 +48,6 @@ export default function BookPage() {
     });
 
   // ── Live estimate (updates while the form is being filled) ─
-  // Replaced by the real quote once calculate() resolves.
   const displayQuote = quote ?? {
     ...EMPTY_QUOTE,
     items:    form.itemCount * PRICING.PER_ITEM,
@@ -75,7 +60,7 @@ export default function BookPage() {
       + (form.time && isOffHours(form.time) ? PRICING.OFF_HOURS_SURCHARGE : 0),
   };
 
-  // ── Reset — clears both hook state and quoteReady ─────────
+  // ── Reset ─────────────────────────────────────────────────
   const handleReset = () => {
     setQuoteReady(false);
     resetForm();
@@ -150,12 +135,10 @@ export default function BookPage() {
             heavyItems:    form.heavyItems,
             totalPrice:    displayQuote.total,
             distanceMiles: quote?.distance ?? null,
+            durationMins:  durationMins ?? 0,   // ← FIX: was missing entirely
           }}
         />
 
-        {/* Hide the floating call button while the payment modal is open —
-            the customer is focused on entering name/email/phone and we don't
-            want to distract them right when they're about to pay.           */}
         <ContactFloat hidden={modalOpen} />
 
       </main>

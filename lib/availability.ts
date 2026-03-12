@@ -1,88 +1,89 @@
 // ============================================================
-// lib/availability.ts — Conflict detection (pure functions)
+// lib/availability.ts
 //
-// Blocking rule (asymmetric):
-//   Each confirmed booking blocks:
-//     • 1 hour BEFORE  — driver needs to leave to reach pickup in time
-//     • 3 hours AFTER  — estimated delivery window
+// Central source of truth for:
+//   • TIME_SLOTS  — the bookable time grid
+//   • isOffHours  — before 8 AM or after 6 PM
+//   • timeToMinutes — "6:00 AM" → 360
+//   • getBlockedSlots — which slots to grey out in the UI
+//   • hasConflict     — server-side overlap guard
 //
-//   So a booking at 2:00 PM blocks: 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM
-//   And a new booking at 1:30 PM would be blocked by the 2:00 PM booking.
-//
-// Off-hours:
-//   Slots before 8:00 AM or after 6:00 PM carry an extra surcharge.
-//   The surcharge amount lives in lib/pricing.ts (OFF_HOURS_SURCHARGE).
-//   This file just exports the detection helper.
+// KEY DESIGN DECISION:
+//   All conflict logic works in "minutes since midnight" so it
+//   never touches timezones, UTC conversion, or ISO strings.
+//   The DB columns pickup_time + duration_mins are the source
+//   of truth. start_at / end_at are calendar-display only.
 // ============================================================
 
-// Hours blocked before a booked pickup (driver travel/prep time)
-export const BLOCK_BEFORE_HOURS = 1;
-// Hours blocked after a booked pickup (estimated delivery duration)
-export const BLOCK_AFTER_HOURS  = 3;
-
-// Standard business hours — slots outside this range get a surcharge
-export const OFF_HOURS_START = 8;   // before 8:00 AM
-export const OFF_HOURS_END   = 18;  // after  6:00 PM (18:00)
-
-// All bookable time slots — 6 AM to 10 PM, 1-hour intervals.
+// ── Time slot grid ────────────────────────────────────────────
+// Every slot a customer can book. Edit here to add/remove hours.
 export const TIME_SLOTS = [
-  "6:00 AM",  "7:00 AM",  "8:00 AM",  "9:00 AM",  "10:00 AM",
-  "11:00 AM", "12:00 PM", "1:00 PM",  "2:00 PM",  "3:00 PM",
-  "4:00 PM",  "5:00 PM",  "6:00 PM",  "7:00 PM",  "8:00 PM",
-  "9:00 PM",  "10:00 PM",
-];
+  "6:00 AM",  "7:00 AM",  "8:00 AM",  "9:00 AM",
+  "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM",
+  "2:00 PM",  "3:00 PM",  "4:00 PM",  "5:00 PM",
+  "6:00 PM",  "7:00 PM",  "8:00 PM",
+] as const;
 
-// ── Helpers ───────────────────────────────────────────────────
+export type TimeSlot = typeof TIME_SLOTS[number];
 
-/**
- * Parse "h:mm AM/PM" → decimal hours since midnight.
- * e.g. "2:30 PM" → 14.5
- */
-export function timeToHours(t: string): number {
-  const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!m) throw new Error(`Cannot parse time: "${t}"`);
-  let h = parseInt(m[1], 10);
-  const min = parseInt(m[2], 10);
-  const mer = m[3].toUpperCase();
-  if (mer === "PM" && h !== 12) h += 12;
-  if (mer === "AM" && h === 12) h = 0;
-  return h + min / 60;
-}
-
-/**
- * Returns true if the candidate slot falls within the blocked window
- * of an existing booking.
- *
- * Window: [bookedTime - BLOCK_BEFORE_HOURS, bookedTime + BLOCK_AFTER_HOURS)
- * e.g. booked at 2:00 PM → blocks 1:00 PM through 4:59 PM
- */
-export function isConflict(candidateTime: string, bookedTime: string): boolean {
-  const candidate = timeToHours(candidateTime);
-  const booked    = timeToHours(bookedTime);
-  const diff      = candidate - booked; // positive = candidate is later
-  return diff > -BLOCK_BEFORE_HOURS && diff < BLOCK_AFTER_HOURS;
-}
-
-/**
- * Returns true if the given time slot is outside business hours
- * (before OFF_HOURS_START or at/after OFF_HOURS_END).
- */
+// ── Off-hours definition ──────────────────────────────────────
+// Before 8 AM or at/after 6 PM triggers the +$25 surcharge.
 export function isOffHours(time: string): boolean {
-  const h = timeToHours(time);
-  return h < OFF_HOURS_START || h >= OFF_HOURS_END;
+  const mins = timeToMinutes(time);
+  return mins < 8 * 60 || mins >= 18 * 60;
 }
 
-/**
- * Given confirmed pickup_times on a date, return blocked slots.
- */
-export function getBlockedSlots(bookedTimes: string[]): Set<string> {
+// ── timeToMinutes ─────────────────────────────────────────────
+// "6:00 AM"  → 360
+// "12:00 PM" → 720
+// "8:00 PM"  → 1200
+// Throws on malformed input so callers surface the bug early.
+export function timeToMinutes(time: string): number {
+  const m = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) throw new Error(`Invalid time format: "${time}"`);
+
+  let h         = parseInt(m[1], 10);
+  const min     = parseInt(m[2], 10);
+  const meridiem = m[3].toUpperCase();
+
+  if (meridiem === "PM" && h !== 12) h += 12;
+  if (meridiem === "AM" && h === 12) h = 0;
+
+  return h * 60 + min;
+}
+
+// ── getBlockedSlots ───────────────────────────────────────────
+// Called by GET /api/availability to build the grey-out set
+// shown in the TimeSlotPicker.
+//
+// A slot S is blocked if picking it would start during an
+// existing booking's active window.
+//
+// FIX vs old version:
+//   Old: received string[] of start times, did exact match only.
+//   New: receives { pickup_time, duration_mins }[] and checks
+//        whether S falls inside [bookingStart, bookingEnd).
+//
+// NOTE: This conservatively blocks any slot that STARTS inside
+// an existing window. It does NOT try to estimate how long the
+// new job would take (we don't know that yet at browse time).
+// The server-side hasConflict() does the full overlap check.
+export function getBlockedSlots(
+  bookings: Array<{ pickup_time: string; duration_mins: number }>,
+): Set<string> {
   const blocked = new Set<string>();
 
   for (const slot of TIME_SLOTS) {
-    for (const booked of bookedTimes) {
-      if (isConflict(slot, booked)) {
+    const slotMins = timeToMinutes(slot);
+
+    for (const booking of bookings) {
+      const bookingStart = timeToMinutes(booking.pickup_time);
+      const bookingEnd   = bookingStart + booking.duration_mins;
+
+      // Block the slot if it starts inside an existing booking window
+      if (slotMins >= bookingStart && slotMins < bookingEnd) {
         blocked.add(slot);
-        break;
+        break; // no need to check more bookings for this slot
       }
     }
   }
@@ -90,9 +91,34 @@ export function getBlockedSlots(bookedTimes: string[]): Set<string> {
   return blocked;
 }
 
-/**
- * Server-side conflict check before creating a booking.
- */
-export function hasConflict(candidateTime: string, bookedTimes: string[]): boolean {
-  return bookedTimes.some((bt) => isConflict(candidateTime, bt));
+// ── hasConflict ───────────────────────────────────────────────
+// Called by POST /api/bookings as the server-side race-condition
+// guard right before inserting.
+//
+// FIX vs old version:
+//   Old: hasConflict(newTime, bookedTimes[]) — exact match only,
+//        no awareness of how long any job takes.
+//   New: hasConflict(newTime, newDurationMins, existing[]) —
+//        full overlap check: does [newStart, newEnd) intersect
+//        any [existingStart, existingEnd)?
+//
+// Standard interval overlap:  A.start < B.end  AND  A.end > B.start
+export function hasConflict(
+  newTime:         string,
+  newDurationMins: number,
+  existing:        Array<{ pickup_time: string; duration_mins: number }>,
+): boolean {
+  const newStart = timeToMinutes(newTime);
+  const newEnd   = newStart + newDurationMins;
+
+  for (const booking of existing) {
+    const existingStart = timeToMinutes(booking.pickup_time);
+    const existingEnd   = existingStart + booking.duration_mins;
+
+    if (newStart < existingEnd && newEnd > existingStart) {
+      return true; // overlap found
+    }
+  }
+
+  return false;
 }

@@ -2,6 +2,11 @@
 
 // ============================================================
 // hooks/useQuote.ts — Async quote calculation
+//
+// FIX: durationMins was returned by getDistancePrice() but
+// never stored in state or exposed. It was silently dropped,
+// so ContactModal had no value to send to /api/bookings,
+// which then rejected the request with 400.
 // ============================================================
 
 import { useState, useCallback } from "react";
@@ -10,10 +15,11 @@ import { getDistancePrice } from "@/lib/distance";
 import { isOffHours } from "@/lib/availability";
 
 export type QuoteState = {
-  quote:       QuoteBreakdown | null;
-  isPremium:   boolean;
-  calculating: boolean;
-  calculate:   (form: FormData) => Promise<void>;
+  quote:        QuoteBreakdown | null;
+  isPremium:    boolean;
+  durationMins: number | null;   // ← NEW: total calendar block for this job
+  calculating:  boolean;
+  calculate:    (form: FormData) => Promise<void>;
 };
 
 export const EMPTY_QUOTE: QuoteBreakdown = {
@@ -27,9 +33,10 @@ export const EMPTY_QUOTE: QuoteBreakdown = {
 };
 
 export function useQuote(): QuoteState {
-  const [quote,       setQuote]       = useState<QuoteBreakdown | null>(null);
-  const [isPremium,   setIsPremium]   = useState(false);
-  const [calculating, setCalculating] = useState(false);
+  const [quote,        setQuote]        = useState<QuoteBreakdown | null>(null);
+  const [isPremium,    setIsPremium]    = useState(false);
+  const [durationMins, setDurationMins] = useState<number | null>(null); // ← NEW
+  const [calculating,  setCalculating]  = useState(false);
 
   const calculate = useCallback(async (form: FormData) => {
     setCalculating(true);
@@ -48,11 +55,12 @@ export function useQuote(): QuoteState {
       const total      = base + items + heavy + distanceResult.price + weekendFee + offHours;
 
       setIsPremium(distanceResult.isPremium);
+      setDurationMins(distanceResult.durationMins);  // ← FIX: was never stored
       setQuote({ base, items, heavy, distance: distanceResult.price, weekendFee, offHours, total });
     } finally {
       setCalculating(false);
     }
   }, []);
 
-  return { quote, isPremium, calculating, calculate };
+  return { quote, isPremium, durationMins, calculating, calculate };
 }

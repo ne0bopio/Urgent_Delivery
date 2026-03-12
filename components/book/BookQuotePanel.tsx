@@ -5,21 +5,26 @@
 //
 // Owns: scanline lock overlay, all quote line items,
 //       premium badge, animated total, payment CTA.
+//
+// FIX vs old version:
+//   Premium badge copy said "2.5× distance rate for routes over
+//   140 mi" — neither figure is accurate. The actual logic in
+//   /api/distance/route.ts applies a $1.00/mile deadhead surcharge
+//   for every mile past DISTANCE_LIMITS.LOCAL_ZONE_MILES.
+//   Badge now reflects what the code actually does.
 // ============================================================
 
 import { AnimatePresence, motion } from "framer-motion";
 
 import type { QuoteBreakdown, FormData } from "@/lib/pricing";
 import { PRICING }                       from "@/lib/pricing";
+import { DISTANCE_LIMITS }               from "@/lib/distance";
 
 // ── Props ─────────────────────────────────────────────────────
 export type BookQuotePanelProps = {
   step:         number;
-  // Only the fields the panel actually renders
   form: Pick<FormData, "itemCount" | "heavyItems">;
-  // null until calculate() resolves (the final real quote)
   quote:        QuoteBreakdown | null;
-  // Live-updating estimate shown while form is being filled
   displayQuote: QuoteBreakdown;
   quoteReady:   boolean;
   isPremium:    boolean;
@@ -160,7 +165,7 @@ export default function BookQuotePanel({
             label="Off-hours fee"
             value={displayQuote.offHours > 0 ? `+$${PRICING.OFF_HOURS_SURCHARGE}` : "—"}
             accent={displayQuote.offHours > 0}
-            note={displayQuote.offHours > 0 ? "Before 8AM or after 6PM" : undefined}
+            note={displayQuote.offHours > 0 ? "Before 8 AM or after 6 PM" : undefined}
           />
           <QuoteLine
             label="Distance"
@@ -173,6 +178,8 @@ export default function BookQuotePanel({
         <hr className="border-[#2F3A33]/10" />
 
         {/* ── Premium distance badge ────────────────────────────── */}
+        {/* FIX: old copy said "2.5× rate / over 140 mi" — both wrong.
+            Actual logic: +$1.00 per mile past LOCAL_ZONE_MILES.       */}
         <AnimatePresence>
           {quoteReady && isPremium && (
             <motion.div
@@ -184,7 +191,9 @@ export default function BookQuotePanel({
             >
               <span className="text-[#F26A5B] text-xs mt-0.5">⚠</span>
               <p className="font-mono text-[9px] text-[#F26A5B]/80 tracking-wide leading-relaxed">
-                LONG-RANGE PREMIUM APPLIED · 2.5× distance rate for routes over 140 mi
+                {/* Reads directly from the constant so it stays in sync if you change it */}
+                LONG-RANGE SURCHARGE APPLIED · +${DISTANCE_LIMITS.DEADHEAD_FEE_PER_MILE.toFixed(2)}/mi
+                over {DISTANCE_LIMITS.LOCAL_ZONE_MILES} mi
               </p>
             </motion.div>
           )}

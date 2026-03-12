@@ -32,6 +32,7 @@ type BookingPayload = {
   heavyItems:    boolean | null;
   totalPrice:    number;
   distanceMiles: number | null;
+  durationMins:  number;           // ← total calendar block (delivery + buffer + return)
 };
 
 type Props = {
