@@ -17,9 +17,9 @@ import { isOffHours } from "@/lib/availability";
 export type QuoteState = {
   quote:        QuoteBreakdown | null;
   isPremium:    boolean;
-  durationMins: number | null;   // ← NEW: total calendar block for this job
+  durationMins: number | null;
   calculating:  boolean;
-  calculate:    (form: FormData) => Promise<void>;
+  calculate:    (form: FormData) => Promise<{ durationMins: number }>;
 };
 
 export const EMPTY_QUOTE: QuoteBreakdown = {
@@ -55,8 +55,10 @@ export function useQuote(): QuoteState {
       const total      = base + items + heavy + distanceResult.price + weekendFee + offHours;
 
       setIsPremium(distanceResult.isPremium);
-      setDurationMins(distanceResult.durationMins);  // ← FIX: was never stored
+      setDurationMins(distanceResult.durationMins);
       setQuote({ base, items, heavy, distance: distanceResult.price, weekendFee, offHours, total });
+
+      return { durationMins: distanceResult.durationMins };
     } finally {
       setCalculating(false);
     }

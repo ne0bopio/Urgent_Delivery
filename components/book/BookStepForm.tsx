@@ -14,7 +14,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import AddressAutocomplete from "@/components/book/AddressAutocomplete";
 import TimeSlotPicker      from "@/components/book/TimeSlotPicker";
 
-import type { FormData }          from "@/lib/pricing";
 import type { BookingFormReturn }  from "@/hooks/useBookingForm";
 import { TOTAL_STEPS }            from "@/lib/pricing";
 

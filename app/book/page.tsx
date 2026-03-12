@@ -38,7 +38,28 @@ export default function BookPage() {
     useBookingForm(async (currentForm) => {
       setQuoteError(null);
       try {
-        await calculate(currentForm);
+        // calculate() now returns durationMins so we can use it immediately
+        const { durationMins: mins } = await calculate(currentForm);
+
+        // Run the real hasConflict check server-side with the actual job duration.
+        // This is the earliest possible moment we can do an accurate check —
+        // durationMins isn't known until the distance/route is calculated.
+        const avRes = await fetch("/api/check-availability", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({
+            date:         currentForm.date,
+            time:         currentForm.time,
+            durationMins: mins,
+          }),
+        });
+        const avData = await avRes.json() as { available: boolean; reason?: string };
+
+        if (!avData.available) {
+          setQuoteError(avData.reason ?? "This time slot is not available. Please go back and choose a different time.");
+          return; // don't setQuoteReady — stay on the form
+        }
+
         setQuoteReady(true);
       } catch (err) {
         setQuoteError(
