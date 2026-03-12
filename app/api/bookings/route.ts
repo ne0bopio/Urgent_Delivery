@@ -168,8 +168,8 @@ export async function POST(req: NextRequest) {
         },
       }],
       customer_email: body.contact.email,
-      success_url: `${appUrl}/app/book/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${appUrl}/app/book/cancel`,
+      success_url: `${appUrl}/book/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${appUrl}/book/cancel`,
       metadata: {
         pickup:         body.pickup,
         dropoff:        body.dropoff,
