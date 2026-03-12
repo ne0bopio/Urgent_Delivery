@@ -62,7 +62,7 @@ export default function CustomerConfirmation({
 
           <h1 style={s.headline}>Booking Confirmed,<br />{firstName}.</h1>
           <p style={s.subheadline}>
-            Your delivery is locked in. We will take it from here.
+            Your delivery is locked in. We&apos;ll take it from here.
           </p>
 
           <p style={s.bookingRef}>REF #{bookingId.slice(0, 8).toUpperCase()}</p>
@@ -136,7 +136,7 @@ export default function CustomerConfirmation({
         {/* ── CTA — dark olive */}
         <div style={s.ctaSection}>
           <p style={s.ctaHeadline}>Need to make a change?</p>
-          <p style={s.ctaBody}>Reply to this email or tap below and we will sort it out.</p>
+          <p style={s.ctaBody}>Reply to this email or tap below and we&apos;ll sort it out.</p>
           <a href="mailto:pablo.moncada31@gmail.com" style={s.ctaButton}>
             CONTACT US
           </a>

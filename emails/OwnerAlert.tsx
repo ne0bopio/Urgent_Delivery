@@ -163,18 +163,7 @@ export default function OwnerAlert({
 
         {/* ── Footer */}
         <div style={s.footer}>
-          <p style={{ margin: "0 0 10px 0" }}>
-            <span style={{ 
-              color: '#C62828', 
-              textDecoration: 'none', 
-              fontFamily: "monospace",
-              fontSize: "9px",
-              letterSpacing: "0.3em",
-              textTransform: "uppercase"
-            }}>
-              URGENT DELIVERY CO. · INTERNAL
-            </span>
-          </p>
+          <p style={s.footerBrand}>URGENT DELIVERY CO. · INTERNAL</p>
           <div style={s.footerDivider} />
           <p style={s.footerMeta}>Booking ID: {bookingId}</p>
         </div>
