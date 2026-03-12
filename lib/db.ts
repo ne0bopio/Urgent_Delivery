@@ -1,54 +1,45 @@
 // ============================================================
-// lib/db.ts — Supabase client (server-side only)
+// lib/db.ts — Supabase client (lazy initialization)
 //
-// Uses the service_role key so it bypasses RLS and can
-// read/write all rows. Never import this from a "use client"
-// component — it would expose the key to the browser.
+// FIX: The previous version threw an error at module evaluation
+// time if env vars were missing. Next.js evaluates API route
+// modules during `next build` to collect page data, so a
+// missing env var would crash the entire build on Vercel even
+// though the vars ARE set at runtime.
 //
-// Usage:
-//   import { supabase } from "@/lib/db";
-//   const { data, error } = await supabase.from("bookings").select("*");
+// Solution: use a getter that initializes the client on first
+// use, not at import time. The error is still thrown if vars
+// are missing — just at request time instead of build time.
 // ============================================================
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let _client: SupabaseClient | null = null;
 
-if (!url || !key) {
-  throw new Error(
-    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local",
-  );
+function getClient(): SupabaseClient {
+  if (_client) return _client;
+
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error(
+      "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. " +
+      "Add them to your Vercel environment variables."
+    );
+  }
+
+  _client = createClient(url, key, {
+    auth: { persistSession: false },
+  });
+
+  return _client;
 }
 
-export const supabase = createClient(url, key, {
-  auth: {
-    // Disable auto session management — we're using this purely
-    // as a server-side DB client, not for auth
-    persistSession:    false,
-    autoRefreshToken:  false,
-    detectSessionInUrl: false,
+// Use this everywhere instead of importing supabase directly.
+// It behaves identically — just initializes on first call.
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return (getClient() as unknown as Record<string | symbol, unknown>)[prop];
   },
 });
-
-// ── Booking row type (matches the SQL schema) ─────────────────
-export type BookingRow = {
-  id:                 string;
-  created_at:         string;
-  customer_name:      string;
-  customer_email:     string;
-  customer_phone:     string;
-  pickup_address:     string;
-  dropoff_address:    string;
-  item_count:         number;
-  heavy_items:        boolean;
-  distance_miles:     number | null;
-  pickup_date:        string;       // "YYYY-MM-DD"
-  pickup_time:        string;       // "h:mm AM/PM"
-  start_at:           string;       // ISO timestamp
-  end_at:             string;       // ISO timestamp (start + 4h)
-  total_price_cents:  number;
-  stripe_session_id:  string | null;
-  status:             "pending_payment" | "confirmed" | "cancelled" | "expired";
-  expires_at:         string | null;
-};
