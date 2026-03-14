@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   //   • Production (domain verified):  use "no-reply@yourdomain.com"
   //
   // Switch the FROM_EMAIL line when you verify your domain in Resend.
-  const FROM_EMAIL = "Urgent Delivery Co. <onboarding@resend.dev>";
+  const FROM_EMAIL = "Urgent Delivery Co. <onboarding@urgentdelivery.com>"; // Placeholder — replace with your verified domain email
   const ownerEmail = process.env.OWNER_EMAIL;
 
   const emailResults = await Promise.allSettled([
