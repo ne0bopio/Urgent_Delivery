@@ -1,6 +1,7 @@
 import Footer from "@/components/Footer";
 import "./globals.css";
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import { Poppins, Outfit } from "next/font/google"
 
 const outfit = Outfit({
@@ -35,6 +36,7 @@ export default function RootLayout({
       >
         {children}
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
