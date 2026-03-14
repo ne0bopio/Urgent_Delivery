@@ -15,6 +15,7 @@ import AddressAutocomplete from "@/components/book/AddressAutocomplete";
 import TimeSlotPicker      from "@/components/book/TimeSlotPicker";
 
 import type { BookingFormReturn }  from "@/hooks/useBookingForm";
+import type { PickupStatus }       from "@/hooks/usePickupValidation";
 import { TOTAL_STEPS }            from "@/lib/pricing";
 
 // ── Props ─────────────────────────────────────────────────────
@@ -33,12 +34,13 @@ export type BookStepFormProps = {
   calculating:   boolean;
   quoteError:    string | null;
   clearError:    () => void;
+  pickupStatus:  PickupStatus;   // ← NEW: drives validation badge in step 4
 };
 
 // ─────────────────────────────────────────────────────────────
 export default function BookStepForm({
   step, form, canAdvance, dateTimeError, setField, goNext, goBack,
-  resetForm, quoteReady, calculating, quoteError, clearError,
+  resetForm, quoteReady, calculating, quoteError, clearError, pickupStatus,
 }: BookStepFormProps) {
   return (
     <div className="flex-1 flex flex-col">
@@ -170,7 +172,7 @@ export default function BookStepForm({
           <StepShell
             label="04 / PICKUP"
             title="Where are we picking up?"
-            hint="Enter the full street address. We serve NJ, CT & NY only."
+            hint="Enter the full street address. We serve within 1 hour of Fairview, NJ."
           >
             <AddressAutocomplete
               value={form.pickup}
@@ -178,6 +180,74 @@ export default function BookStepForm({
               placeholder="123 Main St, Newark, NJ"
               label="Pickup address"
             />
+
+            {/* ── Range validation badge ─────────────────────────
+                Driven by pickupStatus from usePickupValidation.
+                idle       → subtle hint text
+                validating → spinner
+                valid      → green confirmation with drive time
+                invalid    → red block with reason + call prompt
+                error      → neutral warning (bad address / network)
+            ─────────────────────────────────────────────────── */}
+            <div className="mt-3 min-h-[24px]">
+
+              {pickupStatus.state === "idle" && form.pickup.trim().length > 0 && (
+                <p className="font-mono text-[9px] text-[#EDEBE7]/20 tracking-widest uppercase">
+                  Checking service area once you stop typing...
+                </p>
+              )}
+
+              {pickupStatus.state === "validating" && (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 border border-[#1F5A52] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  <span className="font-mono text-[10px] text-[#EDEBE7]/40 tracking-widest uppercase">
+                    Checking range...
+                  </span>
+                </div>
+              )}
+
+              {pickupStatus.state === "valid" && (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-[#1F5A52] flex items-center justify-center flex-shrink-0">
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <path d="M1 4l2 2 4-4" stroke="#EDEBE7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <span className="font-mono text-[10px] text-[#1F5A52] tracking-widest uppercase">
+                    In range · {pickupStatus.driveMinutes} min drive
+                    {pickupStatus.distanceText ? ` · ${pickupStatus.distanceText}` : ""}
+                  </span>
+                </div>
+              )}
+
+              {pickupStatus.state === "invalid" && (
+                <div className="flex items-start gap-2">
+                  <div className="w-4 h-4 bg-[#F26A5B]/20 border border-[#F26A5B]/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg width="7" height="7" viewBox="0 0 7 7" fill="none">
+                      <path d="M1 1l5 5M6 1L1 6" stroke="#F26A5B" strokeWidth="1.2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-[#F26A5B] tracking-widest uppercase">
+                      Out of range · {pickupStatus.driveMinutes} min drive
+                    </p>
+                    <p className="font-mono text-[9px] text-[#EDEBE7]/30 mt-0.5 leading-relaxed">
+                      We only service pickups within 1 hr of Fairview, NJ.
+                      Call us for distant jobs.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {pickupStatus.state === "error" && (
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-[#EDEBE7]/30 tracking-widest">
+                    ⚠ {pickupStatus.error}
+                  </span>
+                </div>
+              )}
+
+            </div>
           </StepShell>
         )}
 

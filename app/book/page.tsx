@@ -3,9 +3,10 @@
 // ============================================================
 // app/book/page.tsx — Booking & Quote Page (orchestrator)
 //
-// FIX: durationMins was not in the ContactModal payload.
-// Now pulled from useQuote() and forwarded so /api/bookings
-// receives it and can pass the 400 validation check.
+// CHANGES:
+//   + usePickupValidation hook wired in
+//   + canAdvance intercepted on step 3 to gate on isPickupValid
+//   + pickupStatus passed to BookStepForm for UI feedback
 // ============================================================
 
 import { useState }    from "react";
@@ -19,6 +20,7 @@ import BookQuotePanel from "@/components/book/BookQuotePanel";
 
 import { useBookingForm }        from "@/hooks/useBookingForm";
 import { useQuote, EMPTY_QUOTE } from "@/hooks/useQuote";
+import { usePickupValidation }   from "@/hooks/usePickupValidation";
 import { PRICING, TOTAL_STEPS } from "@/lib/pricing";
 import { isOffHours }            from "@/lib/availability";
 
@@ -31,19 +33,14 @@ export default function BookPage() {
   const [modalOpen,  setModalOpen]  = useState(false);
 
   // ── Hooks ─────────────────────────────────────────────────
-  // FIX: destructure durationMins from useQuote
   const { quote, isPremium, durationMins, calculating, calculate } = useQuote();
 
   const { step, form, canAdvance, dateTimeError, setField, goNext, goBack, resetForm } =
     useBookingForm(async (currentForm) => {
       setQuoteError(null);
       try {
-        // calculate() now returns durationMins so we can use it immediately
         const { durationMins: mins } = await calculate(currentForm);
 
-        // Run the real hasConflict check server-side with the actual job duration.
-        // This is the earliest possible moment we can do an accurate check —
-        // durationMins isn't known until the distance/route is calculated.
         const avRes = await fetch("/api/check-availability", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
@@ -57,7 +54,7 @@ export default function BookPage() {
 
         if (!avData.available) {
           setQuoteError(avData.reason ?? "This time slot is not available. Please go back and choose a different time.");
-          return; // don't setQuoteReady — stay on the form
+          return;
         }
 
         setQuoteReady(true);
@@ -67,6 +64,19 @@ export default function BookPage() {
         );
       }
     });
+
+  // ── Pickup range validation ────────────────────────────────
+  // Watches form.pickup reactively; calls /api/validate-pickup
+  // after an 800ms debounce. Resets when step changes.
+  const { pickupStatus, isPickupValid } = usePickupValidation(form.pickup, step);
+
+  // ── Gate canAdvance on step 4 ─────────────────────────────
+  // useBookingForm's canAdvance already checks that pickup is
+  // non-empty. We additionally require the range validation to
+  // have passed before the user can proceed past step 4.
+  const effectiveCanAdvance = step === 4
+    ? canAdvance && isPickupValid
+    : canAdvance;
 
   // ── Live estimate (updates while the form is being filled) ─
   const displayQuote = quote ?? {
@@ -118,7 +128,7 @@ export default function BookPage() {
           <BookStepForm
             step={step}
             form={form}
-            canAdvance={canAdvance}
+            canAdvance={effectiveCanAdvance}  
             dateTimeError={dateTimeError}
             setField={setField}
             goNext={goNext}
@@ -128,6 +138,7 @@ export default function BookPage() {
             calculating={calculating}
             quoteError={quoteError}
             clearError={() => setQuoteError(null)}
+            pickupStatus={pickupStatus}         
           />
 
           {/* Right — live quote panel */}
@@ -156,7 +167,7 @@ export default function BookPage() {
             heavyItems:    form.heavyItems,
             totalPrice:    displayQuote.total,
             distanceMiles: quote?.distance ?? null,
-            durationMins:  durationMins ?? 0,   // ← FIX: was missing entirely
+            durationMins:  durationMins ?? 0,
           }}
         />
 
