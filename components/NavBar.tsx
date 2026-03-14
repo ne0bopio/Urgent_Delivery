@@ -26,15 +26,15 @@ export default function Navbar() {
           <Link
             href="/"
             aria-label="Home"
-            className="group relative inline-flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full bg-brand-offwhite shadow-sm transition-all hover:scale-105"
+            className="group relative inline-flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full shadow-sm transition-all hover:scale-105"
           >
             <div className="absolute inset-[-4px] rounded-full border border-brand-teal/20 transition-all group-hover:border-brand-teal/60" />
             <Image
               src="/delivery_logo.svg"
               alt="Urgent Delivery logo"
-              width={32}
-              height={32}
-              className="h-7 md:h-8 w-auto"
+              width={45}
+              height={45}
+              className="h-4 md:h-14 w-auto"
               priority
             />
           </Link>
@@ -58,7 +58,7 @@ export default function Navbar() {
         {/* Col 3: Retro call button (desktop only) */}
         <div className="hidden md:flex justify-end items-center pr-1">
           <a
-            href="tel:+12017903994"
+            href="/book"
             aria-label="Call us now"
             className="
               group relative flex items-center gap-2.5

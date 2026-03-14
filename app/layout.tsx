@@ -22,6 +22,15 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Urgent Delivery Company",
   description: "We offer fast and reliable delivery services on the weekends",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 

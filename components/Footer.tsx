@@ -15,6 +15,7 @@
 // ============================================================
 
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -84,7 +85,7 @@ export default function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6 py-8 border-t border-b border-[#EDEBE7]/8">
 
             {/* ── COL 1: Navigation ───────────────────────────── */}
-            <div>
+            <div className="relative flex flex-col">
               <DataPanelHeader label="NAV.LINKS" />
               <ul className="flex flex-col gap-3 mt-4">
                 {[
@@ -112,6 +113,16 @@ export default function Footer() {
                   </li>
                 ))}
               </ul>
+              {/* Add your logo here under the nav links */}
+              <div className="mt-auto flex justify-start">
+                <Image
+                  src="/delivery_logo.svg" // Replace with your logo path
+                  alt="Your Logo"
+                  width={100}
+                  height={50}
+                  className="w-auto h-12"
+                />
+              </div>
             </div>
 
             {/* ── COL 2: Operating hours ──────────────────────── */}
