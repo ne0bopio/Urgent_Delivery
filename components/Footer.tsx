@@ -120,7 +120,7 @@ export default function Footer() {
                   alt="Your Logo"
                   width={100}
                   height={50}
-                  className="w-auto h-12"
+                  className="w-auto h-25"
                 />
               </div>
             </div>

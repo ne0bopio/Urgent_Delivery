@@ -26,15 +26,15 @@ export default function Navbar() {
           <Link
             href="/"
             aria-label="Home"
-            className="group relative inline-flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full shadow-sm transition-all hover:scale-105"
+            className="group relative inline-flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full shadow-sm transition-all hover:scale-105"
           >
-            <div className="absolute inset-[-4px] rounded-full border border-brand-teal/20 transition-all group-hover:border-brand-teal/60" />
+            <div className="absolute inset-[-4px] rounded-full border  border-brand-teal/20 transition-all group-hover:border-brand-teal/60" />
             <Image
               src="/delivery_logo.svg"
               alt="Urgent Delivery logo"
-              width={45}
-              height={45}
-              className="h-4 md:h-14 w-auto"
+              width={96}
+              height={96}
+              className="h-12 md:h-18 w-auto"
               priority
             />
           </Link>

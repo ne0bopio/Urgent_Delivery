@@ -1,12 +1,19 @@
 // ============================================================
-// page.tsx — Landing page
+// page.tsx — Landing page (LCP-optimized)
+//
+// CHANGES:
+// • VanBackground is dynamically imported with ssr:false.
+//   It's purely decorative — deferring it lets the hero card
+//   paint without waiting on two animated SVGs with blur filters.
+// • arrowFadeIn keyframes kept but the arrow itself is tiny
+//   and not on the critical path.
 // ============================================================
 
-import Navbar       from "@/components/NavBar";
-import CTAButton    from "@/components/Ctabutton";
-import ContactFloat from "@/components/Contactfloat";
-import HeroCard     from "@/components/Herocard";
-import VanBackground from "@/components/VanBackground";
+import Navbar              from "@/components/NavBar";
+import CTAButton           from "@/components/Ctabutton";
+import ContactFloat        from "@/components/Contactfloat";
+import HeroCard            from "@/components/Herocard";
+import VanBackgroundLazy   from "@/components/Vanbackgroundlazy";
 
 export default function Home() {
   return (
@@ -15,8 +22,8 @@ export default function Home() {
       {/* 1 ── Navigation */}
       <Navbar />
 
-      {/* 2 ── Background Scenery Layer */}
-      <VanBackground />
+      {/* 2 ── Background Scenery Layer (lazy — paints after hero) */}
+      <VanBackgroundLazy />
 
       {/* 3 ── Main content column */}
       <section className="flex-1 flex flex-col items-center px-4 pt-4 md:pt-8 pb-20 md:pb-24">
@@ -24,8 +31,7 @@ export default function Home() {
         {/* Hero card */}
         <HeroCard />
 
-        {/* ── Connector arrow ─────────────────────────────────────
-            Thin vertical line + triangle head linking card to CTA. */}
+        {/* ── Connector arrow ───────────────────────────────── */}
         <div
           className="flex flex-col items-center my-4 md:my-5"
           aria-hidden="true"
@@ -37,7 +43,7 @@ export default function Home() {
           </svg>
         </div>
 
-        {/* ── CTA wheel button ─────────────────────────────────── */}
+        {/* ── CTA wheel button ──────────────────────────────── */}
         <CTAButton />
 
       </section>

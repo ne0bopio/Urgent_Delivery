@@ -7,7 +7,7 @@ const rateLimit = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 60_000;   // 1 minute window
 const MAX_REQUESTS = 30;    // 30 requests per minute per IP
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   // Only rate limit your API routes
   if (!req.nextUrl.pathname.startsWith('/api/')) {
     return NextResponse.next();
