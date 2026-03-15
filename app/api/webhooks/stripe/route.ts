@@ -124,16 +124,26 @@ export async function POST(req: NextRequest) {
   //   • Production (domain verified):  use "no-reply@yourdomain.com"
   //
   // Switch the FROM_EMAIL line when you verify your domain in Resend.
-  const FROM_EMAIL = "Urgent Delivery Co. <onboarding@urgentdelivery.xyz>"; // Placeholder — replace with your verified domain email
-  const ownerEmail = process.env.OWNER_EMAIL;
+  const FROM_EMAIL  = "Urgent Delivery Co. <bookings@urgentdelivery.xyz>";
+  const REPLY_TO    = "hello@urgentdelivery.xyz"; // forwards to your iCloud via ImprovMX
+  const ownerEmail  = process.env.OWNER_EMAIL;
 
   const emailResults = await Promise.allSettled([
+
+    // ── Customer confirmation ─────────────────────────────────
+    // replyTo means when the customer hits Reply in any email
+    // client, it goes to hello@ (your iCloud) — not to the
+    // no-reply bookings@ sender which can't receive mail.
     resend.emails.send({
       from:    FROM_EMAIL,
       to:      emailData.customerEmail,
+      replyTo: REPLY_TO,              // ← the only change needed
       subject: `Booking Confirmed — ${emailData.pickupDate} at ${emailData.pickupTime}`,
       html:    await render(React.createElement(CustomerConfirmation, emailData)),
     }),
+
+    // ── Owner alert ───────────────────────────────────────────
+    // No replyTo needed here — you're emailing yourself.
     ownerEmail
       ? resend.emails.send({
           from:    FROM_EMAIL,
@@ -142,6 +152,7 @@ export async function POST(req: NextRequest) {
           html:    await render(React.createElement(OwnerAlert, emailData)),
         })
       : Promise.resolve(null),
+
   ]);
 
   emailResults.forEach((r, i) => {

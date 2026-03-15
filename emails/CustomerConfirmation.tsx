@@ -1,6 +1,23 @@
 // ============================================================
 // emails/CustomerConfirmation.tsx
 //
+// REPLY-TO SETUP:
+//   In your Resend send call (app/api/send-receipt/route.ts or
+//   wherever you fire this), set replyTo so that when customers
+//   hit Reply in any email client it goes to your professional
+//   address instead of your no-reply sender:
+//
+//   await resend.emails.send({
+//     from:    "Urgent Delivery Co. <bookings@urgentdelivery.xyz>",
+//     to:      [customerEmail],
+//     replyTo: "hello@urgentdelivery.xyz",   ← this is the key line
+//     subject: "Your booking is confirmed!",
+//     react:   <CustomerConfirmation ... />,
+//   });
+//
+//   hello@urgentdelivery.xyz forwards to your iCloud via
+//   Cloudflare Email Routing (see DNS setup notes in README).
+//
 // Brand palette:
 //   Olive    #2F3A33  — dark bg, footers
 //   Teal     #1F5A52  — section labels ON WHITE/LIGHT bg only
@@ -137,7 +154,7 @@ export default function CustomerConfirmation({
         <div style={s.ctaSection}>
           <p style={s.ctaHeadline}>Need to make a change?</p>
           <p style={s.ctaBody}>Reply to this email or tap below and we&apos;ll sort it out.</p>
-          <a href="mailto:pablo.moncada31@gmail.com" style={s.ctaButton}>
+          <a href={"mailto:hello@urgentdelivery.xyz"} style={s.ctaButton}>
             CONTACT US
           </a>
         </div>
@@ -230,15 +247,22 @@ const s: Record<string, React.CSSProperties> = {
     backgroundColor: "#1F5A52",       // teal fill
     border:          "2px solid rgba(237,235,231,0.15)",
     margin:          "0 auto 24px",
-    display:         "flex",
-    alignItems:      "center",
-    justifyContent:  "center",
+    // Gmail strips flexbox — use line-height to vertically center
+    // the single character instead. text-align handles horizontal.
+    textAlign:       "center",
+    lineHeight:      "60px",
+    
   },
 
   checkMark: {
     fontSize: "26px",
-    color:    "#EDEBE7",             // offwhite on teal — contrast ~8:1 ✓
-    lineHeight: 1,
+    color:    "#EDEBE7",
+    textAlign: "center",
+    
+    // offwhite on teal — contrast ~8:1 ✓
+    // No lineHeight, display, or verticalAlign here.
+    // Parent lineHeight:"60px" + textAlign:"center" handles centering.
+    // Any override on the child breaks Gmail rendering.
   },
 
   headline: {
