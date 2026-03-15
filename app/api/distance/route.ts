@@ -27,10 +27,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { pickup, dropoff } = body;
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_SERVER_KEY;
 
   if (!apiKey) {
-    console.error("[/api/distance] GOOGLE_MAPS_API_KEY is not set");
+    console.error("[/api/distance] GOOGLE_MAPS_SERVER_KEY is not set");
     return NextResponse.json(
       { error: "Server configuration error. Please try again later." },
       { status: 500 },
