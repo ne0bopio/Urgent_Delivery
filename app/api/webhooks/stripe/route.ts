@@ -4,7 +4,7 @@
 // Fires on: checkout.session.completed
 //   1. Verify Stripe signature
 //   2. Find booking by stripe_session_id → update to "confirmed"
-//   3. Send customer confirmation + owner alert via Resend
+//   3. Send customer confirmation + owner alert via Resend 
 // ============================================================
 
 import { NextRequest, NextResponse } from "next/server";
