@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Make sure the API key is configured
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+   const apiKey = process.env.GOOGLE_MAPS_SERVER_KEY;
     if (!apiKey) {
-      console.error("GOOGLE_MAPS_API_KEY is not set in environment variables.");
+      console.error("GOOGLE_MAPS_SERVER_KEY is not set in environment variables.");
       return NextResponse.json(
         { ok: false, error: "Server configuration error." },
         { status: 500 }
