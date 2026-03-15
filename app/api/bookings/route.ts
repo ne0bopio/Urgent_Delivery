@@ -199,11 +199,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 6. Save pending booking ───────────────────────────────
+  // control how long the pending_payment status should block the slot. Now is 5 mins.
   const startAt   = toISOEastern(body.date, body.time);
   const endAt     = new Date(
     new Date(startAt).getTime() + body.durationMins * 60 * 1000,
   ).toISOString();
-  const expiresAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   const { error: dbWriteError } = await supabase
     .from("bookings")
