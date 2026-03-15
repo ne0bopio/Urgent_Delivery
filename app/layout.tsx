@@ -168,14 +168,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
+  
+      <body className={`${outfit.variable} ${poppins.variable}`}>
         {/* JSON-LD structured data — invisible to users, gold for Google */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-      </head>
-      <body className={`${outfit.variable} ${poppins.variable}`}>
         {children}
         <Footer />
         <Analytics />
