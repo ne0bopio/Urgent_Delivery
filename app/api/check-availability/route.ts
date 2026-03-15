@@ -30,12 +30,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("bookings")
     .select("pickup_time, duration_mins")
     .eq("pickup_date", body.date)
-    .or(`status.eq.confirmed,and(status.eq.pending_payment,expires_at.gt.${now})`);
+    .eq("status", "confirmed");
 
   if (error) {
     console.error("[/api/check-availability] DB error:", error);

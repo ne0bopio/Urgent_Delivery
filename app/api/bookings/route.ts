@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
   const endAt     = new Date(
     new Date(startAt).getTime() + body.durationMins * 60 * 1000,
   ).toISOString();
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
 
   const { error: dbWriteError } = await supabase
     .from("bookings")
