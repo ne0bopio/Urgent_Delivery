@@ -240,30 +240,28 @@ const s: Record<string, React.CSSProperties> = {
     margin:        "0 0 28px 0",
   },
 
-  checkCircle: {
-    width:           "60px",
-    height:          "60px",
-    borderRadius:    "50%",
-    backgroundColor: "#1F5A52",       // teal fill
-    border:          "2px solid rgba(237,235,231,0.15)",
-    margin:          "0 auto 24px",
-    // Gmail strips flexbox — use line-height to vertically center
-    // the single character instead. text-align handles horizontal.
-    textAlign:       "center",
-    lineHeight:      "60px",
-    
-  },
+// emails/CustomerConfirmation.tsx
 
-  checkMark: {
-    fontSize: "26px",
-    color:    "#EDEBE7",
-    textAlign: "center",
-    
-    // offwhite on teal — contrast ~8:1 ✓
-    // No lineHeight, display, or verticalAlign here.
-    // Parent lineHeight:"60px" + textAlign:"center" handles centering.
-    // Any override on the child breaks Gmail rendering.
-  },
+checkCircle: {
+  width:           "60px",
+  height:          "60px",
+  borderRadius:    "50%",
+  backgroundColor: "#1F5A52",       // teal fill
+  border:          "2px solid rgba(237,235,231,0.15)",
+  margin:          "0 auto 24px",
+  
+  // FIX: Use text-align and line-height for reliable centering in Gmail
+  textAlign:       "center",
+  lineHeight:      "60px",          // Must match the height of the circle
+},
+
+checkMark: {
+    fontSize:  "26px",
+    color:     "#EDEBE7",
+    margin:    "0",                   // Ensure no default margins interfere
+    display:   "inline-block",        // Allows it to respect the parent's text-align
+    verticalAlign: "middle",          // Helps fine-tune the vertical axis
+},
 
   headline: {
     fontFamily:  "'Georgia', 'Times New Roman', serif",
